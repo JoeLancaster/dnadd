@@ -16,8 +16,7 @@ char *ltrim(char *s)
 int main(int argc, char **argv)
 {
 	if (argc < 2) {
-		printf
-		    ("please specify the program name as the first argument\n");
+		printf("please specify the program name as the first argument\n");
 		exit(EXIT_FAILURE);
 	}
 	char *package = argv[1];
@@ -40,7 +39,8 @@ int main(int argc, char **argv)
 		fprintf(stderr, "can't rename configuration.nix");
 		exit(EXIT_FAILURE);
 	}
-	if (rename("./configuration.nixadd-backup.nix", "./configuration.nix") != 0) {
+	if (rename("./configuration.nixadd-backup.nix", "./configuration.nix")
+	    != 0) {
 		fprintf(stderr, "can't rename configuration.nix");
 		exit(EXIT_FAILURE);
 	}
