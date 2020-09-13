@@ -12,7 +12,9 @@
 #define BUFLEN 255
 #define MARKER "environment.systemPackages = with pkgs; [\n"
 
-const char *usage = "usage: %s PKG\n";
+const char *usage = "usage: %s [OPTIONS] PKG\n"
+    "\t-c Specify nix configuration file\n"
+    "\t-C Set persistent nix configuration file location\n" "\t-h Displays this message\n";
 
 char *ltrim(char *s)
 {
@@ -36,8 +38,11 @@ int main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, "hc:")) != -1) {
 		switch (opt) {
 		case 'c':
-		  _config_path = optarg;
-		  break;
+			_config_path = optarg;
+			break;
+		case '?':
+			exit(EXIT_FAILURE);
+			break;
 		case 'h':
 		default:
 			exit_usage = 1;
