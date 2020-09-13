@@ -18,6 +18,7 @@ char *ltrim(char *s)
 
 int main(int argc, char **argv)
 {
+<<<<<<< HEAD
 	int exit_usage = 0;
 	int opt;
 
@@ -30,12 +31,14 @@ int main(int argc, char **argv)
 	}
 	if (exit_usage || optind == argc) {
 		fprintf(stderr, usage, argv[0]);
+=======
+>>>>>>> 7fc689ceecfa4cc9011e2538aaa84e90d76ae26e
 		exit(EXIT_FAILURE);
 	}
 	char *package = argv[optind];
 
 	FILE *fp = fopen("./configuration.nix", "r");
-	FILE *dfp = fopen("./configuration.nixadd.nix", "w");
+	FILE *dfp = fopen("./configuration.nixadd-backup.nix", "w");
 	if (fp == NULL || dfp == NULL)
 		exit(EXIT_FAILURE);
 
@@ -46,6 +49,20 @@ int main(int argc, char **argv)
 		if (strcmp(t, MARKER) == 0) {
 			fprintf(dfp, "%s\n", package);
 		}
+	}
+	// Swap files
+	if (rename("./configuration.nix", "./.nixadd.tmp") != 0) {
+		fprintf(stderr, "can't rename configuration.nix");
+		exit(EXIT_FAILURE);
+	}
+	if (rename("./configuration.nixadd-backup.nix", "./configuration.nix")
+	    != 0) {
+		fprintf(stderr, "can't rename configuration.nix");
+		exit(EXIT_FAILURE);
+	}
+	if (rename("./.nixadd.tmp", "./configuration.nixadd-backup.nix") != 0) {
+		fprintf(stderr, "can't rename configuration.nix");
+		exit(EXIT_FAILURE);
 	}
 	fclose(fp);
 	fclose(dfp);
