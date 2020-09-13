@@ -18,7 +18,6 @@ char *ltrim(char *s)
 
 int main(int argc, char **argv)
 {
-<<<<<<< HEAD
 	int exit_usage = 0;
 	int opt;
 
@@ -31,8 +30,6 @@ int main(int argc, char **argv)
 	}
 	if (exit_usage || optind == argc) {
 		fprintf(stderr, usage, argv[0]);
-=======
->>>>>>> 7fc689ceecfa4cc9011e2538aaa84e90d76ae26e
 		exit(EXIT_FAILURE);
 	}
 	char *package = argv[optind];
