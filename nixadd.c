@@ -33,8 +33,11 @@ int main(int argc, char **argv)
 	char *_config_path = "/etc/nixos/configuration.nix";	//default config location for NixOS
 #endif
 
-	while ((opt = getopt(argc, argv, "h")) != -1) {
+	while ((opt = getopt(argc, argv, "hc:")) != -1) {
 		switch (opt) {
+		case 'c':
+		  _config_path = optarg;
+		  break;
 		case 'h':
 		default:
 			exit_usage = 1;
