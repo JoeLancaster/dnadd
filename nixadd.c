@@ -7,10 +7,11 @@
 #include <limits.h>
 #include <libgen.h>
 
-#define DEBUG
+//#define DEBUG
 
 #define BUFLEN 255
 #define MARKER "environment.systemPackages = with pkgs; [\n"
+#define DNA_SUFF "/.config/.nixadd"
 
 const char *usage = "usage: %s [OPTIONS] PKG\n"
     "\t-c Specify nix configuration file\n"
@@ -25,6 +26,7 @@ char *ltrim(char *s)
 
 int main(int argc, char **argv)
 {
+	int C_mode = 0;
 	int eno;
 	int exit_usage = 0;
 	int opt;
@@ -34,24 +36,61 @@ int main(int argc, char **argv)
 #else
 	char *_config_path = "/etc/nixos/configuration.nix";	//default config location for NixOS
 #endif
-
-	while ((opt = getopt(argc, argv, "hc:")) != -1) {
+	char *C_str = NULL;
+	while ((opt = getopt(argc, argv, "C:hc:")) != -1) {
 		switch (opt) {
+		case 'C':
+			C_str = optarg;
+			C_mode = 1;
+			break;
 		case 'c':
 			_config_path = optarg;
 			break;
 		case '?':
-			exit(EXIT_FAILURE);
+			exit(EXIT_FAILURE);	//getopt errors for us
 			break;
 		case 'h':
 		default:
 			exit_usage = 1;
 		}
 	}
-	if (exit_usage || optind == argc) {
+	if (exit_usage || (optind == argc && !C_mode)) {
 		fprintf(stderr, usage, argv[0]);
 		exit(EXIT_FAILURE);
 	}
+
+	if (C_mode) {
+		char C_path[PATH_MAX];
+		errno = 0;
+		realpath(C_str, C_path);
+		eno = errno;
+		if (eno) {
+			printf("Warning: %s didn't resolve correctly\n", C_str);
+		} else {
+			C_str = C_path;
+		}
+		char *home_path = getenv("HOME");
+		char dna_path[strlen(home_path) + sizeof(DNA_SUFF)];
+		strcpy(dna_path, home_path);
+		strcat(dna_path, DNA_SUFF);
+		errno = 0;
+		FILE *dna = fopen(dna_path, "w");
+		eno = errno;
+		if (eno) {
+			fprintf(stderr, "Error opening %s\n", dna_path);
+			fprintf(stderr, "%s", strerror(eno));
+			exit(EXIT_FAILURE);
+		}
+		if (fputs(C_str, dna) < 0) {
+			fprintf(stderr, "Couldn't write to %s\n", dna_path);
+			fclose(dna);
+			exit(EXIT_FAILURE);
+		}
+		fclose(dna);
+		printf("Set %s as default config file.\n", C_str);
+		return 0;
+	}
+
 	char *package = argv[optind];
 	char *cfg_full_path;
 	char *path_buf = malloc(PATH_MAX);
