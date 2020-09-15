@@ -12,6 +12,7 @@
 #define BUFLEN 255
 #define MARKER "environment.systemPackages = with pkgs; [\n"
 #define DNA_SUFF "/.config/.nixadd"
+#define CFG_DFLT "/etc/nixos/configuration.nix"
 
 const char *usage = "usage: %s [OPTIONS] PKG\n"
     "\t-c Specify nix configuration file\n"
@@ -34,7 +35,7 @@ int main(int argc, char **argv)
 	char *_config_path = "./configuration.nix";
 	fprintf(stderr, "%s", "DEBUG BUILD\n");
 #else
-	char *_config_path = "/etc/nixos/configuration.nix";	//default config location for NixOS
+	char *_config_path = CFG_DFLT;	//default config location for NixOS
 #endif
 	char *C_str = NULL;
 	while ((opt = getopt(argc, argv, "C:hc:")) != -1) {
@@ -59,6 +60,11 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
+	char *home_path = getenv("HOME");
+	char dna_path[strlen(home_path) + sizeof(DNA_SUFF)];
+	strcpy(dna_path, home_path);
+	strcat(dna_path, DNA_SUFF);
+
 	if (C_mode) {
 		char C_path[PATH_MAX];
 		errno = 0;
@@ -69,10 +75,6 @@ int main(int argc, char **argv)
 		} else {
 			C_str = C_path;
 		}
-		char *home_path = getenv("HOME");
-		char dna_path[strlen(home_path) + sizeof(DNA_SUFF)];
-		strcpy(dna_path, home_path);
-		strcat(dna_path, DNA_SUFF);
 		errno = 0;
 		FILE *dna = fopen(dna_path, "w");
 		eno = errno;
@@ -89,6 +91,36 @@ int main(int argc, char **argv)
 		fclose(dna);
 		printf("Set %s as default config file.\n", C_str);
 		return 0;
+	}
+
+	char dna_cfg_path[PATH_MAX];	//the contents of ~/.config/.nixadd
+	errno = 0;
+	FILE *dna = fopen(dna_path, "r");
+	eno = errno;
+	if (eno && eno != ENOENT) {
+		fprintf(stderr, "Error: couldn't open ~" DNA_SUFF ": %s\n", strerror(eno));
+		//fail or continue with default?
+		if (dna) {
+			fclose(dna);
+		}
+		exit(EXIT_FAILURE);
+	}
+	if (eno == ENOENT) {	// if ~/.config/.nixadd doesn't exist then notify user instead of failing
+
+		/*
+		   could stat /etc/nixos/configuration.nix for existence and prompt user iff:
+		   ~/.config/.nixadd does not exist and /etc/nixos/configuration.nix does not exist
+		 */
+
+		puts("Note: you haven't set a location for your config yet. Use -C");
+		puts("Defaulting to: " CFG_DFLT);
+	} else {
+		fgets(dna_cfg_path, PATH_MAX, dna);	//get the first line of .nixadd only
+		_config_path = dna_cfg_path;
+	}
+
+	if (dna) {
+		fclose(dna);
 	}
 
 	char *package = argv[optind];
@@ -114,7 +146,9 @@ int main(int argc, char **argv)
 		} else {
 			fprintf(stderr, "Error opening file %s\n", _config_path);
 		}
-		fclose(fp);
+		if (fp) {
+			fclose(fp);
+		}
 		exit(EXIT_FAILURE);
 	}
 	strcpy(path_cpy, path_buf);
