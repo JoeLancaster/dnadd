@@ -26,10 +26,10 @@
 #define CFG_DFLT "/etc/nixos/configuration.nix"
 
 const char *usage = "usage: %s [OPTIONS] PKG\n"
-    "\t-c Specify nix configuration file\n"
+    "\t-c Specify nix configuration file for this use only\n"
     "\t-C Set persistent nix configuration file location\n"
-  "\t-t Text only mode. Do not call `nixos-rebuild`"
-  "\t-h Displays this message\n";
+    "\t-t Text only mode. Do not call `nixos-rebuild`\n"
+    "\t-q Only print `nixos-rebuild` output if it fails\n" "\t-h Displays this message\n";
 
 char *ltrim(char *s)
 {
@@ -42,7 +42,9 @@ extern char **environ;
 
 int main(int argc, char **argv)
 {
-  int t_mode = 0; //text only mode. do not nixos-rebuild
+	int quiet = 0;
+	int io_p[2];
+	int t_mode = 0;		//text only mode. do not nixos-rebuild
 	int C_mode = 0;
 	int eno;
 	int exit_usage = 0;
@@ -54,11 +56,14 @@ int main(int argc, char **argv)
 	char *_config_path = CFG_DFLT;	//default config location for NixOS
 #endif
 	char *C_str = NULL;
-	while ((opt = getopt(argc, argv, "tC:hc:")) != -1) {
+	while ((opt = getopt(argc, argv, "qtC:hc:")) != -1) {
 		switch (opt) {
+		case 'q':
+			quiet = 1;
+			break;
 		case 't':
-		  t_mode = 1;
-		  break;
+			t_mode = 1;
+			break;
 		case 'C':
 			C_str = optarg;
 			C_mode = 1;
@@ -189,7 +194,7 @@ int main(int argc, char **argv)
 	strcpy(temp_path, cfg_dir);
 	strcat(temp_path, "/");
 	strcat(temp_path, ".nixtemp");
-	
+
 	//we shouldn't need to use realpath for the backup file path.
 
 	errno = 0;
@@ -225,25 +230,52 @@ int main(int argc, char **argv)
 	fclose(fp);
 	fclose(dfp);
 	printf("Successfully edited %s\n", cfg_file_name);	//just to suppress warning for now
+	if (quiet) {		//ironically print more
+		puts("Running " CMD "\n");	//so the user knows at least something's happening
+	}
 	if (!t_mode) {
-	  pid_t pid = fork();
-	  int stat = 0;
-	  if (pid == -1) {
-	    perror("Fork:");
-	    exit(EXIT_FAILURE);
-	  } else if (pid > 0) { //parent
-	    waitpid(pid, &stat, 0);
-	  } else {
-	    #ifdef DEBUG
-	    char * const _argv[] = {CMD, ARG, NULL};
-	    #else
-	    char * const _argv[] = {CMD, ARG, "--show-trace"};
-	    #endif
-	    if (execvpe(CMD, _argv, environ) < 0) {
-	      perror("execvpe:");
-	      exit(EXIT_FAILURE);
-	    }
-	  }
+		if (pipe(io_p) == -1) {
+			exit(EXIT_FAILURE);
+		}
+
+		pid_t pid = fork();
+		int stat = 0;
+		if (pid == -1) {
+			perror("Fork:");
+			exit(EXIT_FAILURE);
+		} else if (pid > 0) {	//parent
+			if (quiet) {
+				close(io_p[1]);
+			}
+			if (quiet) {
+				char buf[8192];
+				int n = (int)read(io_p[0], buf, sizeof(buf));
+				waitpid(pid, &stat, 0);
+				if (stat) {
+					printf("%.*s\n", n, buf);
+				}
+			} else {
+				waitpid(pid, &stat, 0);
+			}
+			puts("Done.\n");
+
+		} else {
+			if (quiet) {
+				dup2(io_p[1], STDOUT_FILENO);
+				dup2(io_p[1], STDERR_FILENO);
+				close(io_p[0]);
+				close(io_p[1]);
+			}
+#ifdef DEBUG
+			char *const _argv[] = { CMD, ARG, NULL };
+#else
+			char *const _argv[] = { CMD, ARG, "--show-trace" };
+#endif
+			if (execvpe(CMD, _argv, environ) < 0) {
+				perror("execvpe:");
+				exit(EXIT_FAILURE);
+			}
+		}
 	}
 	free(temp_path);
 	free(path_buf);
