@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -6,8 +8,17 @@
 #include <errno.h>
 #include <limits.h>
 #include <libgen.h>
+#include <sys/wait.h>
 
 //#define DEBUG
+
+#ifdef DEBUG
+#define CMD "echo"
+#define ARG "nixadd_test"
+#else
+#define CMD "nixos-rebuild"
+#define ARG "switch"
+#endif
 
 #define BUFLEN 255
 #define MARKER "environment.systemPackages = with pkgs; [\n"
@@ -16,7 +27,9 @@
 
 const char *usage = "usage: %s [OPTIONS] PKG\n"
     "\t-c Specify nix configuration file\n"
-    "\t-C Set persistent nix configuration file location\n" "\t-h Displays this message\n";
+    "\t-C Set persistent nix configuration file location\n"
+  "\t-t Text only mode. Do not call `nixos-rebuild`"
+  "\t-h Displays this message\n";
 
 char *ltrim(char *s)
 {
@@ -25,8 +38,11 @@ char *ltrim(char *s)
 	return s;
 }
 
+extern char **environ;
+
 int main(int argc, char **argv)
 {
+  int t_mode = 0; //text only mode. do not nixos-rebuild
 	int C_mode = 0;
 	int eno;
 	int exit_usage = 0;
@@ -38,8 +54,11 @@ int main(int argc, char **argv)
 	char *_config_path = CFG_DFLT;	//default config location for NixOS
 #endif
 	char *C_str = NULL;
-	while ((opt = getopt(argc, argv, "C:hc:")) != -1) {
+	while ((opt = getopt(argc, argv, "tC:hc:")) != -1) {
 		switch (opt) {
+		case 't':
+		  t_mode = 1;
+		  break;
 		case 'C':
 			C_str = optarg;
 			C_mode = 1;
@@ -170,7 +189,7 @@ int main(int argc, char **argv)
 	strcpy(temp_path, cfg_dir);
 	strcat(temp_path, "/");
 	strcat(temp_path, ".nixtemp");
-
+	
 	//we shouldn't need to use realpath for the backup file path.
 
 	errno = 0;
@@ -203,12 +222,31 @@ int main(int argc, char **argv)
 		fprintf(stderr, "can't rename configuration.nix");
 		exit(EXIT_FAILURE);
 	}
-	printf("Successfully edited %s\n", cfg_file_name);	//just to suppress warning for now
-	free(temp_path);
-
-	free(path_buf);
-	free(path_cpy);
 	fclose(fp);
 	fclose(dfp);
+	printf("Successfully edited %s\n", cfg_file_name);	//just to suppress warning for now
+	if (!t_mode) {
+	  pid_t pid = fork();
+	  int stat = 0;
+	  if (pid == -1) {
+	    perror("Fork:");
+	    exit(EXIT_FAILURE);
+	  } else if (pid > 0) { //parent
+	    waitpid(pid, &stat, 0);
+	  } else {
+	    #ifdef DEBUG
+	    char * const _argv[] = {CMD, ARG, NULL};
+	    #else
+	    char * const _argv[] = {CMD, ARG, "--show-trace"};
+	    #endif
+	    if (execvpe(CMD, _argv, environ) < 0) {
+	      perror("execvpe:");
+	      exit(EXIT_FAILURE);
+	    }
+	  }
+	}
+	free(temp_path);
+	free(path_buf);
+	free(path_cpy);
 	return 0;
 }
