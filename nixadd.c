@@ -214,19 +214,12 @@ int main(int argc, char **argv)
 		}
 	}
 
-	//Swap files
-	if (rename(cfg_full_path, temp_path) != 0) {
-		fprintf(stderr, "can't rename configuration.nix");
-		exit(EXIT_FAILURE);
+	if (!rename(cfg_full_path, temp_path)
+	    || !rename(backup_file_path, cfg_full_path)
+	    || !rename(temp_path, backup_file_path)) {
+		fprintf(stderr, "Couldn't rename files.");
 	}
-	if (rename(backup_file_path, cfg_full_path) != 0) {
-		fprintf(stderr, "can't rename configuration.nix");
-		exit(EXIT_FAILURE);
-	}
-	if (rename(temp_path, backup_file_path) != 0) {
-		fprintf(stderr, "can't rename configuration.nix");
-		exit(EXIT_FAILURE);
-	}
+
 	fclose(fp);
 	fclose(dfp);
 	printf("Successfully edited %s\n", cfg_file_name);	//just to suppress warning for now
@@ -269,7 +262,7 @@ int main(int argc, char **argv)
 #ifdef DEBUG
 			char *const _argv[] = { CMD, ARG, NULL };
 #else
-			char *const _argv[] = { CMD, ARG, "--show-trace" };
+			char *const _argv[] = { CMD, ARG, "--show-trace", NULL };
 #endif
 			if (execvpe(CMD, _argv, environ) < 0) {
 				perror("execvpe:");
