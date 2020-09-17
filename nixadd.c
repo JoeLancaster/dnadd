@@ -24,6 +24,8 @@
 #define MARKER "environment.systemPackages = with pkgs; [\n"
 #define DNA_SUFF "/.config/.nixadd"
 #define CFG_DFLT "/etc/nixos/configuration.nix"
+#define TMP_SUFF ".tmpnixadd"
+#define OLD_SUFF ".nixadd"
 
 const char *usage = "usage: %s [OPTIONS] PKG\n"
     "\t-c Specify nix configuration file for this use only\n"
@@ -124,9 +126,6 @@ int main(int argc, char **argv)
 	if (eno && eno != ENOENT) {
 		fprintf(stderr, "Error: couldn't open ~" DNA_SUFF ": %s\n", strerror(eno));
 		//fail or continue with default?
-		if (dna) {
-			fclose(dna);
-		}
 		exit(EXIT_FAILURE);
 	}
 	if (eno == ENOENT) {	// if ~/.config/.nixadd doesn't exist then notify user instead of failing
@@ -148,19 +147,14 @@ int main(int argc, char **argv)
 	}
 
 	char *package = argv[optind];
-	char *cfg_full_path;
-	char *path_buf = malloc(PATH_MAX);
-	char *path_cpy = malloc(PATH_MAX);
-	char *path_tmp;
-	char *fname_tmp;
 
 	errno = 0;
-	realpath(_config_path, path_buf);
-	cfg_full_path = strdup(path_buf);
+	char *cfg_full_path = realpath(_config_path, NULL);	//let realpath alloc
 	eno = errno;
+
 	int enorp = eno;
 	errno = 0;
-	FILE *fp = fopen(path_buf, "r");
+	FILE *fp = fopen(cfg_full_path, "r");
 	eno = errno;
 	//use _config_path instead of path_buf in failure in case it was realpath that failed
 
@@ -175,27 +169,16 @@ int main(int argc, char **argv)
 		}
 		exit(EXIT_FAILURE);
 	}
-	strcpy(path_cpy, path_buf);
 
-	char *cfg_file_name;
-	char *cfg_dir;
+	const size_t cfp_len = strlen(cfg_full_path);
 
-	path_tmp = dirname(path_buf);	//[dir/base]name may modify its arg so we make use of the original (since it will be overwritten later) and the copy
-	fname_tmp = basename(path_cpy);
-
-	cfg_file_name = strdup(fname_tmp);	//strdup mallocs!
-	cfg_dir = strdup(path_tmp);
-
-	char *backup_file_path = malloc(PATH_MAX);	//the name of the backup file (to be created)
+	char backup_file_path[cfp_len + sizeof(OLD_SUFF)];
 	strcpy(backup_file_path, cfg_full_path);
-	strcat(backup_file_path, ".nixadd");
+	strcat(backup_file_path, OLD_SUFF);
 
-	char *temp_path = malloc(PATH_MAX);	//a temp name for swapping
-	strcpy(temp_path, cfg_dir);
-	strcat(temp_path, "/");
-	strcat(temp_path, ".nixtemp");
-
-	//we shouldn't need to use realpath for the backup file path.
+	char temp_path[cfp_len + sizeof(TMP_SUFF)];
+	strcpy(temp_path, cfg_full_path);
+	strcat(temp_path, TMP_SUFF);
 
 	errno = 0;
 	FILE *dfp = fopen(backup_file_path, "w");
@@ -214,15 +197,28 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (!rename(cfg_full_path, temp_path)
-	    || !rename(backup_file_path, cfg_full_path)
-	    || !rename(temp_path, backup_file_path)) {
-		fprintf(stderr, "Couldn't rename files.");
+	errno = 0;
+	rename(cfg_full_path, temp_path);
+	eno = errno;
+	if (eno) {
+		puts(strerror(eno));
+	}
+	errno = 0;
+	rename(backup_file_path, cfg_full_path);
+	eno = errno;
+	if (eno) {
+		puts(strerror(eno));
+	}
+	errno = 0;
+	rename(temp_path, backup_file_path);
+	eno = errno;
+	if (eno) {
+		puts(strerror(eno));
 	}
 
 	fclose(fp);
 	fclose(dfp);
-	printf("Successfully edited %s\n", cfg_file_name);	//just to suppress warning for now
+	printf("Successfully edited %s\n", cfg_full_path);
 	if (quiet) {		//ironically print more
 		puts("Running " CMD "\n");	//so the user knows at least something's happening
 	}
@@ -270,8 +266,6 @@ int main(int argc, char **argv)
 			}
 		}
 	}
-	free(temp_path);
-	free(path_buf);
-	free(path_cpy);
+	free(cfg_full_path);
 	return 0;
 }
