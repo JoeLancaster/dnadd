@@ -40,6 +40,16 @@ char *ltrim(char *s)
 	return s;
 }
 
+int countspaces(char *s)
+{
+	int i = 0;
+	while (isspace(*s)) {
+		s++;
+		i++;
+	}
+	return i;
+}
+
 extern char **environ;
 
 int main(int argc, char **argv)
@@ -193,7 +203,9 @@ int main(int argc, char **argv)
 		char *t = ltrim(buffer);
 		fputs(buffer, dfp);
 		if (strcmp(t, MARKER) == 0) {
-			fprintf(dfp, "%s\n", package);
+			// Indentation needed for the line that contains our new package is (2 * how many spaces the current line has)
+			int indent = countspaces(buffer) * 2;
+			fprintf(dfp, "%*s%s\n", indent, "", package);
 		}
 	}
 
