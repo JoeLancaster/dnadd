@@ -58,6 +58,7 @@ int main(int argc, char **argv)
 	int io_p[2];
 	int t_mode = 0;		//text only mode. do not nixos-rebuild
 	int C_mode = 0;
+	int c_sat = 0;
 	int eno;
 	int exit_usage = 0;
 	int opt;
@@ -81,6 +82,7 @@ int main(int argc, char **argv)
 			C_mode = 1;
 			break;
 		case 'c':
+		  c_sat = 1;
 			_config_path = optarg;
 			break;
 		case '?':
@@ -128,33 +130,35 @@ int main(int argc, char **argv)
 		printf("Set %s as default config file.\n", C_str);
 		return 0;
 	}
+	if (!c_sat) {
+	  char dna_cfg_path[PATH_MAX];	//the contents of ~/.config/.nixadd
+	  errno = 0;
+	  FILE *dna = fopen(dna_path, "r");
+	  eno = errno;
+	  if (eno && eno != ENOENT) {
+	    fprintf(stderr, "Error: couldn't open ~" DNA_SUFF ": %s\n", strerror(eno));
+	    //fail or continue with default?
+	    exit(EXIT_FAILURE);
+	  }
+	  if (eno == ENOENT) {	// if ~/.config/.nixadd doesn't exist then notify user instead of failing
 
-	char dna_cfg_path[PATH_MAX];	//the contents of ~/.config/.nixadd
-	errno = 0;
-	FILE *dna = fopen(dna_path, "r");
-	eno = errno;
-	if (eno && eno != ENOENT) {
-		fprintf(stderr, "Error: couldn't open ~" DNA_SUFF ": %s\n", strerror(eno));
-		//fail or continue with default?
-		exit(EXIT_FAILURE);
+	    /*
+	      could stat /etc/nixos/configuration.nix for existence and prompt user iff:
+	      ~/.config/.nixadd does not exist and /etc/nixos/configuration.nix does not exist
+	    */
+
+	    puts("Note: you haven't set a location for your config yet. Use -C");
+	    puts("Defaulting to: " CFG_DFLT);
+	  } else {
+	    fgets(dna_cfg_path, PATH_MAX, dna);	//get the first line of .nixadd only
+	    _config_path = dna_cfg_path;
+	  }
+
+	  if (dna) {
+	    fclose(dna);
+	  }
 	}
-	if (eno == ENOENT) {	// if ~/.config/.nixadd doesn't exist then notify user instead of failing
 
-		/*
-		   could stat /etc/nixos/configuration.nix for existence and prompt user iff:
-		   ~/.config/.nixadd does not exist and /etc/nixos/configuration.nix does not exist
-		 */
-
-		puts("Note: you haven't set a location for your config yet. Use -C");
-		puts("Defaulting to: " CFG_DFLT);
-	} else {
-		fgets(dna_cfg_path, PATH_MAX, dna);	//get the first line of .nixadd only
-		_config_path = dna_cfg_path;
-	}
-
-	if (dna) {
-		fclose(dna);
-	}
 
 	char *package = argv[optind];
 
