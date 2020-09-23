@@ -104,9 +104,9 @@ int main(int argc, char **argv)
 	strcat(dna_path, DNA_SUFF);
 
 	if (C_mode) {
-		char C_path[PATH_MAX];
+
 		errno = 0;
-		realpath(C_str, C_path);
+		char *C_path = realpath(C_str, NULL); //let realpath alloc
 		eno = errno;
 		if (eno) {
 			printf("Warning: %s didn't resolve correctly\n", C_str);
@@ -126,6 +126,7 @@ int main(int argc, char **argv)
 			fclose(dna);
 			exit(EXIT_FAILURE);
 		}
+		free(C_path);
 		fclose(dna);
 		printf("Set %s as default config file.\n", C_str);
 		return 0;
@@ -150,7 +151,10 @@ int main(int argc, char **argv)
 	    puts("Note: you haven't set a location for your config yet. Use -C");
 	    puts("Defaulting to: " CFG_DFLT);
 	  } else {
-	    fgets(dna_cfg_path, PATH_MAX, dna);	//get the first line of .nixadd only
+	    if(fgets(dna_cfg_path, PATH_MAX, dna) == NULL) {	//get the first line of .nixadd only
+	      fprintf(stderr, "Error reading from %s\n", dna_path);
+	      exit(EXIT_FAILURE);
+	    }
 	    _config_path = dna_cfg_path;
 	  }
 
