@@ -126,9 +126,9 @@ int main(int argc, char **argv)
 			fclose(dna);
 			exit(EXIT_FAILURE);
 		}
-		free(C_path);
 		fclose(dna);
 		printf("Set %s as default config file.\n", C_str);
+		free(C_path);
 		return 0;
 	}
 	if (!c_sat) {
