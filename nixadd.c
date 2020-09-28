@@ -147,8 +147,6 @@ int main(int argc, char **argv)
 		}
 	}
 
-	char *package = argv[optind];
-
 	errno = 0;
 	char *cfg_full_path = realpath(_config_path, NULL);	//let realpath alloc
 	eno = errno;
@@ -189,8 +187,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	char buffer[BUFLEN];
-	insertpkgs(buffer, package, 1, BUFLEN, fp, dfp);
+	insertpkgs(&argv[optind], argc - optind, fp, dfp);
 
 	errno = 0;
 	rename(cfg_full_path, temp_path);

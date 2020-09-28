@@ -11,6 +11,6 @@ char *ltrim(char *);
 
 int countspaces(char *);
 
-void insertpkgs(char *, char *, int, int, FILE *, FILE *);
+void insertpkgs(char **, int, FILE *, FILE *);
 
 #endif

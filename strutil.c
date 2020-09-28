@@ -2,7 +2,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 
-#define BUFLEN 256
+#define BUFLEN 2048		//max line length
 
 char *ltrim(char *s)
 {
@@ -21,16 +21,15 @@ int countspaces(char *s)
 	return i;
 }
 
-void insertpkgs(char *pkg, int plen, FILE * fp, FILE * dfp)
+void insertpkgs(char **pkg, int plen, FILE * fp, FILE * dfp)
 {
 	char s[BUFLEN];
 	int marked = 0;
-	char *trimmed = malloc(BUFLEN);
+	char trimmed[BUFLEN];
 	int i;
 	while (fgets(s, BUFLEN, fp)) {
 		i = 0;
 		char *t = ltrim(s);
-		printf("%s\n", t);
 		while (!isspace(t[i]) && t[i] != '\0') {	//trim RHS
 			trimmed[i] = t[i];
 			i++;
@@ -49,7 +48,9 @@ void insertpkgs(char *pkg, int plen, FILE * fp, FILE * dfp)
 				i++;
 			}
 			istr[i] = '\0';
-			fprintf(dfp, "%s%s\n", istr, pkg);
+			for (i = 0; i < plen; i++) {
+				fprintf(dfp, "%s%s\n", istr, pkg[i]);
+			}
 			marked = 1;
 
 		}
