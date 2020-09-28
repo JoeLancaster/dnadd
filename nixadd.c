@@ -10,6 +10,8 @@
 #include <libgen.h>
 #include <sys/wait.h>
 
+#include "strutil.h"
+
 //#define DEBUG
 
 #ifdef DEBUG
@@ -21,7 +23,6 @@
 #endif
 
 #define BUFLEN 255
-#define MARKER "environment.systemPackages = with pkgs; [\n"
 #define DNA_SUFF "/.config/.nixadd"
 #define CFG_DFLT "/etc/nixos/configuration.nix"
 #define TMP_SUFF ".tmpnixadd"
@@ -33,24 +34,7 @@ const char *usage = "usage: %s [OPTIONS] PKG\n"
     "\t-t Text only mode. Do not call `nixos-rebuild`\n"
     "\t-q Only print `nixos-rebuild` output if it fails\n" "\t-h Displays this message\n";
 
-char *ltrim(char *s)
-{
-	while (isspace(*s))
-		s++;
-	return s;
-}
-
-int countspaces(char *s)
-{
-	int i = 0;
-	while (isspace(*s)) {
-		s++;
-		i++;
-	}
-	return i;
-}
-
-extern char **environ;
+//extern char **environ;
 
 int main(int argc, char **argv)
 {
@@ -82,7 +66,7 @@ int main(int argc, char **argv)
 			C_mode = 1;
 			break;
 		case 'c':
-		  c_sat = 1;
+			c_sat = 1;
 			_config_path = optarg;
 			break;
 		case '?':
@@ -106,7 +90,7 @@ int main(int argc, char **argv)
 	if (C_mode) {
 
 		errno = 0;
-		char *C_path = realpath(C_str, NULL); //let realpath alloc
+		char *C_path = realpath(C_str, NULL);	//let realpath alloc
 		eno = errno;
 		if (eno) {
 			printf("Warning: %s didn't resolve correctly\n", C_str);
@@ -132,37 +116,36 @@ int main(int argc, char **argv)
 		return 0;
 	}
 	if (!c_sat) {
-	  char dna_cfg_path[PATH_MAX];	//the contents of ~/.config/.nixadd
-	  errno = 0;
-	  FILE *dna = fopen(dna_path, "r");
-	  eno = errno;
-	  if (eno && eno != ENOENT) {
-	    fprintf(stderr, "Error: couldn't open ~" DNA_SUFF ": %s\n", strerror(eno));
-	    //fail or continue with default?
-	    exit(EXIT_FAILURE);
-	  }
-	  if (eno == ENOENT) {	// if ~/.config/.nixadd doesn't exist then notify user instead of failing
+		char dna_cfg_path[PATH_MAX];	//the contents of ~/.config/.nixadd
+		errno = 0;
+		FILE *dna = fopen(dna_path, "r");
+		eno = errno;
+		if (eno && eno != ENOENT) {
+			fprintf(stderr, "Error: couldn't open ~" DNA_SUFF ": %s\n", strerror(eno));
+			//fail or continue with default?
+			exit(EXIT_FAILURE);
+		}
+		if (eno == ENOENT) {	// if ~/.config/.nixadd doesn't exist then notify user instead of failing
 
-	    /*
-	      could stat /etc/nixos/configuration.nix for existence and prompt user iff:
-	      ~/.config/.nixadd does not exist and /etc/nixos/configuration.nix does not exist
-	    */
+			/*
+			   could stat /etc/nixos/configuration.nix for existence and prompt user iff:
+			   ~/.config/.nixadd does not exist and /etc/nixos/configuration.nix does not exist
+			 */
 
-	    puts("Note: you haven't set a location for your config yet. Use -C");
-	    puts("Defaulting to: " CFG_DFLT);
-	  } else {
-	    if(fgets(dna_cfg_path, PATH_MAX, dna) == NULL) {	//get the first line of .nixadd only
-	      fprintf(stderr, "Error reading from %s\n", dna_path);
-	      exit(EXIT_FAILURE);
-	    }
-	    _config_path = dna_cfg_path;
-	  }
+			puts("Note: you haven't set a location for your config yet. Use -C");
+			puts("Defaulting to: " CFG_DFLT);
+		} else {
+			if (fgets(dna_cfg_path, PATH_MAX, dna) == NULL) {	//get the first line of .nixadd only
+				fprintf(stderr, "Error reading from %s\n", dna_path);
+				exit(EXIT_FAILURE);
+			}
+			_config_path = dna_cfg_path;
+		}
 
-	  if (dna) {
-	    fclose(dna);
-	  }
+		if (dna) {
+			fclose(dna);
+		}
 	}
-
 
 	char *package = argv[optind];
 
@@ -207,15 +190,7 @@ int main(int argc, char **argv)
 	}
 
 	char buffer[BUFLEN];
-	while (fgets(buffer, BUFLEN, fp)) {
-		char *t = ltrim(buffer);
-		fputs(buffer, dfp);
-		if (strcmp(t, MARKER) == 0) {
-			// Indentation needed for the line that contains our new package is (2 * how many spaces the current line has)
-			int indent = countspaces(buffer) * 2;
-			fprintf(dfp, "%*s%s\n", indent, "", package);
-		}
-	}
+	insertpkgs(buffer, package, 1, BUFLEN, fp, dfp);
 
 	errno = 0;
 	rename(cfg_full_path, temp_path);
