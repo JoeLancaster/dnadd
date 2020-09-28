@@ -28,7 +28,7 @@
 #define TMP_SUFF ".tmpnixadd"
 #define OLD_SUFF ".nixadd"
 
-const char *usage = "usage: %s [OPTIONS] PKG\n"
+const char *usage = "usage: %s [OPTIONS] ... [PKG] ...\n"
     "\t-c Specify nix configuration file for this use only\n"
     "\t-C Set persistent nix configuration file location\n"
     "\t-t Text only mode. Do not call `nixos-rebuild`\n"
