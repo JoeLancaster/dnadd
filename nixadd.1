@@ -4,7 +4,7 @@ nixadd \- Add nix packages declaratively on the command line
 .SH SYNPOSIS
 .B nixadd [OPTION] ... [PACKAGE] ...
 .SH DESCRIPTION
-nixadd is a utility that allows you to add packages to your Nix-based system in a classic command-line style while adhering to the declarative style. It does this by inserting the package name into your nominated .nix file and then (optionally) calling the "nixos-rebuild switch" command.
+nixadd is a utility that allows you to add packages to your Nix-based system in a classic command-line style while adhering to the declarative principles of NixOS. It does this by inserting the package name into your nominated .nix file and then (optionally) calling the "nixos-rebuild switch" command.
 .SH OPTIONS
 .TP
 .BR \-c " " \fIPATH\fR
@@ -25,12 +25,12 @@ Displays a help message
 .IP 1. 4
 Before first run, set the location of your .nix file that contains your packages with nixadd -C
 .IP 2. 4
-Within your .nix file inside your packages array you should write the comment #.NIXADD.# immediately above the first package. nixadd will use this to find where to place the packages and use the proper indentation.
+Within your .nix file inside your packages array you should write the comment #NIXADD# immediately above the first package. nixadd will use this to find where to place the packages and use the proper indentation.
 .TP
 The location of the persistent file used by nixadd and set with -C is located at ~/.config/.nixadd
 .SH NOTES
 .IP 1. 4
-nixadd updates your .nix file by creating a backup and swapping their names. A residual file with a .nixadd suffix will always be left.
+nixadd updates your .nix file by creating a backup and swapping their names. A residual file with a .nixadd suffix will always be left as a backup.
 .IP 2. 4
 The path to your .nix file is resolved with realpath(3) which expands symbolic links. If, for example, your /etc/nixos/configuration.nix is a symlink for /home/alice/configuration.nix your backup file will be made in /home/alice
 .IP 3. 4
@@ -41,3 +41,12 @@ If ok
 .TP
 .BR Non-zero  " "
 nixadd exits with 1 (EXIT_FAILURE) if any error occurs or exits with nixos-rebuild's status code if nixos-rebuild does not exit successfully.
+.SH AUTHOR
+.HP
+Edward d'Albon
+
+edward.dalbon@gmail.com
+.HP
+Joe Lancaster
+
+joe.a.lancas@gmail.com
