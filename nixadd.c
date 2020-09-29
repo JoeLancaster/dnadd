@@ -12,6 +12,7 @@
 
 #include "strutil.h"
 #include "dynamic_read.h"
+#include "rename.h"
 
 //#define DEBUG
 
@@ -187,25 +188,25 @@ int main(int argc, char **argv)
 	}
 
 	insertpkgs(&argv[optind], argc - optind, fp, dfp);
-
-	errno = 0;
-	rename(cfg_full_path, temp_path);
-	eno = errno;
-	if (eno) {
-		puts(strerror(eno));
-	}
-	errno = 0;
-	rename(backup_file_path, cfg_full_path);
-	eno = errno;
-	if (eno) {
-		puts(strerror(eno));
-	}
-	errno = 0;
-	rename(temp_path, backup_file_path);
-	eno = errno;
-	if (eno) {
-		puts(strerror(eno));
-	}
+	swap_names(backup_file_path, cfg_full_path, temp_path);
+	/* errno = 0; */
+	/* rename(cfg_full_path, temp_path); */
+	/* eno = errno; */
+	/* if (eno) { */
+	/* 	puts(strerror(eno)); */
+	/* } */
+	/* errno = 0; */
+	/* rename(backup_file_path, cfg_full_path); */
+	/* eno = errno; */
+	/* if (eno) { */
+	/* 	puts(strerror(eno)); */
+	/* } */
+	/* errno = 0; */
+	/* rename(temp_path, backup_file_path); */
+	/* eno = errno; */
+	/* if (eno) { */
+	/* 	puts(strerror(eno)); */
+	/* } */
 
 	fclose(fp);
 	fclose(dfp);
@@ -232,6 +233,7 @@ int main(int argc, char **argv)
 				waitpid(pid, &stat, 0);
 				if (stat) {
 					printf("%.*s\n", bread, buf);
+					free(buf);
 				}
 			} else {
 				waitpid(pid, &stat, 0);
@@ -254,6 +256,10 @@ int main(int argc, char **argv)
 			}
 		}
 	}
+	if (stat) {
+	  fprintf(stderr, "%s: " CMD " failed.\n config has been reverted\n", argv[0]);
+	  swap_names(backup_file_path, cfg_full_path, temp_path);
+	}
 	free(cfg_full_path);
-	return stat;		//0 if (t) otherwise exit status of exec
+	return stat;		//guaranteed 0 if (t) otherwise exit status of exec
 }
