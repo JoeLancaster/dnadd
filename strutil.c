@@ -11,16 +11,6 @@ char *ltrim(char *s)
 	return s;
 }
 
-int countspaces(char *s)
-{
-	int i = 0;
-	while (isspace(*s)) {
-		s++;
-		i++;
-	}
-	return i;
-}
-
 void insertpkgs(char **pkg, int plen, FILE * fp, FILE * dfp)
 {
 	char s[BUFLEN];
@@ -37,11 +27,7 @@ void insertpkgs(char **pkg, int plen, FILE * fp, FILE * dfp)
 		trimmed[i] = '\0';
 		fputs(s, dfp);
 		if (strcmp(trimmed, MARKER) == 0 && !marked) {	//on the off chance user has marker twice
-			char istr[BUFLEN];
-			/*
-			   make a copy of s which includes all the LHS white space
-			   then cat pkg name from there, this handles user using mix of tabs and spaces
-			 */
+		  char istr[BUFLEN]; //make a copy of s' whitespace
 			strcpy(istr, s);
 			i = 0;
 			while (isspace(s[i])) {

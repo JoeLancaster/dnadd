@@ -14,13 +14,10 @@
 
 //#define DEBUG
 
-#ifdef DEBUG
-#define CMD "echo"
-#define ARG "nixadd_test"
-#else
+
 #define CMD "nixos-rebuild"
 #define ARG "switch"
-#endif
+
 
 #define BUFLEN 255
 #define DNA_SUFF "/.config/.nixadd"
@@ -38,6 +35,7 @@ const char *usage = "usage: %s [OPTIONS] ... [PKG] ...\n"
 
 int main(int argc, char **argv)
 {
+  int stat = 0;
 	int quiet = 0;
 	int io_p[2];
 	int t_mode = 0;		//text only mode. do not nixos-rebuild
@@ -220,15 +218,13 @@ int main(int argc, char **argv)
 		}
 
 		pid_t pid = fork();
-		int stat = 0;
+
 		if (pid == -1) {
 			perror("Fork:");
 			exit(EXIT_FAILURE);
 		} else if (pid > 0) {	//parent
 			if (quiet) {
-				close(io_p[1]);
-			}
-			if (quiet) {
+			  close(io_p[1]);
 				char buf[8192];
 				int n = (int)read(io_p[0], buf, sizeof(buf));
 				waitpid(pid, &stat, 0);
@@ -245,13 +241,10 @@ int main(int argc, char **argv)
 				dup2(io_p[1], STDOUT_FILENO);
 				dup2(io_p[1], STDERR_FILENO);
 				close(io_p[0]);
-				close(io_p[1]);
 			}
-#ifdef DEBUG
-			char *const _argv[] = { CMD, ARG, NULL };
-#else
+
 			char *const _argv[] = { CMD, ARG, "--show-trace", NULL };
-#endif
+			
 			if (execvpe(CMD, _argv, environ) < 0) {
 				perror("execvpe:");
 				exit(EXIT_FAILURE);
@@ -259,5 +252,5 @@ int main(int argc, char **argv)
 		}
 	}
 	free(cfg_full_path);
-	return 0;
+	return stat; //0 if (t) otherwise exit status of exec
 }
