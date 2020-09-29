@@ -1,5 +1,5 @@
 MANDIR = /share/man/man1
-sources = nixadd.c strutil.c
+sources = nixadd.c strutil.c dynamic_read.c
 CFLAGS = -Wall -Wextra -Wpedantic
 PNAME = nixadd
 
