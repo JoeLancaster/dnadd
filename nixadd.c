@@ -84,15 +84,17 @@ int main(int argc, char **argv)
 
 	char *home_path = getenv("HOME");
 	char dna_path[strlen(home_path) + sizeof(DNA_SUFF)];
-	strcpy(dna_path, home_path);
-	strcat(dna_path, DNA_SUFF);
+	sprintf(dna_path, "%s%s", home_path, DNA_SUFF);
 
 	if (C_mode) {
-
 		errno = 0;
 		char *C_path = realpath(C_str, NULL);	//let realpath alloc
 		eno = errno;
 		if (eno) {
+		  if (C_path == NULL) {
+		    fprintf(stderr, "Couldn't use \"%s\": %s\n", C_str, strerror(eno));
+		    exit(EXIT_FAILURE);
+		  } 		  
 			printf("Warning: %s didn't resolve correctly\n", C_str);
 		} else {
 			C_str = C_path;
@@ -101,19 +103,22 @@ int main(int argc, char **argv)
 		FILE *dna = fopen(dna_path, "w");
 		eno = errno;
 		if (eno) {
-			fprintf(stderr, "Error opening %s\n", dna_path);
-			fprintf(stderr, "%s", strerror(eno));
-			exit(EXIT_FAILURE);
+		  fprintf(stderr, "Error opening %s: %s\n", dna_path, strerror(eno));
+		  goto err_pu;
 		}
 		if (fputs(C_str, dna) < 0) {
 			fprintf(stderr, "Couldn't write to %s\n", dna_path);
-			fclose(dna);
-			exit(EXIT_FAILURE);
+			goto err_op;
 		}
 		fclose(dna);
 		printf("Set %s as default config file.\n", C_str);
 		free(C_path);
 		return 0;
+	err_op:
+		fclose(dna);
+	err_pu:
+		free(C_path);
+		exit(EXIT_FAILURE);
 	}
 	if (!c_sat) {
 		char dna_cfg_path[PATH_MAX];	//the contents of ~/.config/.nixadd
@@ -126,25 +131,20 @@ int main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 		if (eno == ENOENT) {	// if ~/.config/.nixadd doesn't exist then notify user instead of failing
-
-			/*
-			   could stat /etc/nixos/configuration.nix for existence and prompt user iff:
-			   ~/.config/.nixadd does not exist and /etc/nixos/configuration.nix does not exist
-			 */
-
 			puts("Note: you haven't set a location for your config yet. Use -C");
 			puts("Defaulting to: " CFG_DFLT);
 		} else {
 			if (fgets(dna_cfg_path, PATH_MAX, dna) == NULL) {	//get the first line of .nixadd only
 				fprintf(stderr, "Error reading from %s\n", dna_path);
+				fclose(dna);
 				exit(EXIT_FAILURE);
 			}
 			_config_path = dna_cfg_path;
 		}
 
-		if (dna) {
-			fclose(dna);
-		}
+
+		fclose(dna);
+
 	}
 
 	errno = 0;
@@ -159,35 +159,38 @@ int main(int argc, char **argv)
 
 	if (eno || enorp) {
 		if (eno == EACCES || enorp == EACCES) {
-			fprintf(stderr, "Access denied for %s. (Are you sudo?)\n", _config_path);
+			fprintf(stderr, "Permission denied for %s. (Are you sudo?)\n", _config_path);
 		} else {
 			fprintf(stderr, "Error opening file %s\n", _config_path);
 		}
 		if (fp) {
 			fclose(fp);
 		}
+		if (cfg_full_path) {
+		  free(cfg_full_path);		  
+		}
 		exit(EXIT_FAILURE);
 	}
 
 	const size_t cfp_len = strlen(cfg_full_path);
-
-	char backup_file_path[cfp_len + sizeof(OLD_SUFF)];
-	strcpy(backup_file_path, cfg_full_path);
-	strcat(backup_file_path, OLD_SUFF);
-
 	char temp_path[cfp_len + sizeof(TMP_SUFF)];
-	strcpy(temp_path, cfg_full_path);
-	strcat(temp_path, TMP_SUFF);
+	char backup_file_path[cfp_len + sizeof(OLD_SUFF)];
+	
+	sprintf(backup_file_path, "%s%s", cfg_full_path, OLD_SUFF);
+	sprintf(temp_path, "%s%s", cfg_full_path, TMP_SUFF);
 
 	errno = 0;
 	FILE *dfp = fopen(backup_file_path, "w");
 	eno = errno;
 	if (eno) {
 		fprintf(stderr, "Error with %s: %s\n", backup_file_path, strerror(eno));
+		fclose(fp);
 		exit(EXIT_FAILURE);
 	}
 
-	insertpkgs(&argv[optind], argc - optind, fp, dfp);
+	if (insertpkgs(&argv[optind], argc - optind, fp, dfp)) {
+	  goto errf;
+	}
 	swap_names(backup_file_path, cfg_full_path, temp_path);
 	fclose(fp);
 	fclose(dfp);
@@ -204,7 +207,7 @@ int main(int argc, char **argv)
 
 		if (pid == -1) {
 			perror("Fork:");
-			exit(EXIT_FAILURE);
+			goto errc;
 		} else if (pid > 0) {	//parent
 			if (quiet) {
 				close(io_p[1]);
@@ -239,7 +242,7 @@ int main(int argc, char **argv)
 
 			if (execvpe(CMD, _argv, environ) < 0) {
 				perror("execvpe:");
-				exit(EXIT_FAILURE);
+				goto errc;
 			}
 		}
 	}
@@ -249,4 +252,10 @@ int main(int argc, char **argv)
 	}
 	free(cfg_full_path);
 	return stat;		//guaranteed 0 if (t) otherwise exit status of exec
+ errf:
+	fclose(fp);
+	fclose(dfp);
+ errc:
+	free(cfg_full_path);
+	exit(EXIT_FAILURE);
 }

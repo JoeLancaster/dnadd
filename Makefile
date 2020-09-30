@@ -6,7 +6,7 @@ PNAME = nixadd
 default:
 	gcc -O3 -Werror $(CFLAGS) $(sources) -o nixadd
 debug:
-	gcc -g -O $(CFLAGS) $(sources) -o nixadd_dbg
+	gcc -g -Og $(CFLAGS) $(sources) -o nixadd_dbg
 install:
 	install -d $(DESTDIR)/bin
 	install -m 777 $(PNAME) $(DESTDIR)/bin

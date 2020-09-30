@@ -11,7 +11,7 @@ char *ltrim(char *s)
 	return s;
 }
 
-void insertpkgs(char **pkg, int plen, FILE * fp, FILE * dfp)
+int insertpkgs(char **pkg, int plen, FILE * fp, FILE * dfp)
 {
 	char s[BUFLEN];
 	int marked = 0;
@@ -43,6 +43,7 @@ void insertpkgs(char **pkg, int plen, FILE * fp, FILE * dfp)
 	}
 	if (marked == 0) {
 		fprintf(stderr, "Provided config file didn't contain \"" MARKER "\"\n");
-		exit(EXIT_FAILURE);
+		return 1;
 	}
+	return 0;
 }
