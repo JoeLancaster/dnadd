@@ -4,7 +4,7 @@ nixadd \- Add nix packages declaratively on the command line
 .SH SYNPOSIS
 .B nixadd [OPTION] ... [PACKAGE] ...
 .SH DESCRIPTION
-nixadd is a utility that allows you to add packages to your Nix-based system in a classic command-line style while adhering to the declarative principles of NixOS. It does this by inserting the package name into your nominated .nix file and then (optionally) calling the "nixos-rebuild switch" command.
+nixadd is a utility that allows you to add packages to your Nix-based system in a classic command-line style while adhering to the declarative principles of NixOS. It does this by inserting the package name into your nominated .nix file and then (optionally) calling the "\fInixos-rebuild\fR switch" command.
 .SH OPTIONS
 .TP
 .BR \-c " " \fIPATH\fR
@@ -40,7 +40,7 @@ nixadd reads the file at $(HOME)/.config/.nixadd. As you will likely be using ni
 If ok
 .TP
 .BR Non-zero  " "
-nixadd exits with 1 (EXIT_FAILURE) if any error occurs or exits with nixos-rebuild's status code if nixos-rebuild does not exit successfully.
+nixadd exits with 1 (EXIT_FAILURE) if any error occurs or exits with \fInixos-rebuild\fR's status code if \fInixos-rebuild\fR does not exit successfully.
 .SH AUTHOR
 .HP
 Edward d'Albon
