@@ -189,25 +189,6 @@ int main(int argc, char **argv)
 
 	insertpkgs(&argv[optind], argc - optind, fp, dfp);
 	swap_names(backup_file_path, cfg_full_path, temp_path);
-	/* errno = 0; */
-	/* rename(cfg_full_path, temp_path); */
-	/* eno = errno; */
-	/* if (eno) { */
-	/* 	puts(strerror(eno)); */
-	/* } */
-	/* errno = 0; */
-	/* rename(backup_file_path, cfg_full_path); */
-	/* eno = errno; */
-	/* if (eno) { */
-	/* 	puts(strerror(eno)); */
-	/* } */
-	/* errno = 0; */
-	/* rename(temp_path, backup_file_path); */
-	/* eno = errno; */
-	/* if (eno) { */
-	/* 	puts(strerror(eno)); */
-	/* } */
-
 	fclose(fp);
 	fclose(dfp);
 	printf("Successfully edited %s\n", cfg_full_path);
@@ -230,10 +211,16 @@ int main(int argc, char **argv)
 				int bread = 0;
 				int pf;
 				char *buf = d_read(io_p[0], &bread, BS, RMAX, &pf);
+				if (buf == NULL) {
+				  fprintf(stderr, "Lost output from " CMD " " ARG "\n");
+				}
 				waitpid(pid, &stat, 0);
 				if (stat) {
 					printf("%.*s\n", bread, buf);
 					free(buf);
+				}
+				if (pf) {
+				  fprintf(stderr, "Lost some output from " CMD " " ARG "\n");
 				}
 			} else {
 				waitpid(pid, &stat, 0);
