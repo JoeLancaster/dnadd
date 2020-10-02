@@ -1,0 +1,52 @@
+.TH DNADD 1
+.SH NAME
+dnadd \- Add nix packages declaratively on the command line
+.SH SYNPOSIS
+.B dnadd [OPTION] ... [PACKAGE] ...
+.SH DESCRIPTION
+dnadd is a utility that allows you to add packages to your NixOS system in a classic command-line style while adhering to the declarative principles of NixOS. It does this by inserting the package name into your nominated .nix file and then (optionally) calling the "\fInixos-rebuild\fR switch" command.
+.SH OPTIONS
+.TP
+.BR \-c " " \fIPATH\fR
+Specify the path to the .nix file to edit.
+.TP
+.BR \-C " " \fIPATH\fR
+Set the persistent path to the .nix file
+.TP
+.BR \-t " "
+Text only mode. Do not call nixos-rebuild.
+.TP
+.BR \-q
+Only print the output of nixos-rebuild if it fails.
+.TP
+.BR \-h
+Displays a help message
+.SH SETUP AND USAGE
+.IP 1. 4
+Before first run, set the location of your .nix file that contains your packages with dnadd -C
+.IP 2. 4
+Within your .nix file inside your packages array you should write the comment #DNA# immediately above the first package. dnadd will use this to find where to place the packages and use the proper indentation.
+.TP
+The location of the persistent file used by dnadd and set with -C is located at ~/.config/.dna
+.SH NOTES
+.IP 1. 4
+dnadd updates your .nix file by creating a backup and swapping their names. A residual file with a .dna suffix will always be left as a backup.
+.IP 2. 4
+The path to your .nix file is resolved with realpath(3) which expands symbolic links. If, for example, your /etc/nixos/configuration.nix is a symlink for /home/alice/configuration.nix your backup file will be made in /home/alice
+.IP 3. 4
+dnadd reads the file at $(HOME)/.config/.dna. As you will likely be using dnadd with sudo or as root, you should make sure you set your location with dnadd -C as root user or sudo or manually in /root/.config/.dna
+.SH EXIT STATUS
+.BR 0 " "
+If ok
+.TP
+.BR Non-zero  " "
+dnadd exits with 1 (EXIT_FAILURE) if any error occurs or exits with \fInixos-rebuild\fR's status code if \fInixos-rebuild\fR does not exit successfully.
+.SH AUTHOR
+.HP
+Edward d'Albon
+
+edward.dalbon@gmail.com
+.HP
+Joe Lancaster
+
+joe.a.lancas@gmail.com
