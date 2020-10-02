@@ -4,7 +4,6 @@
 
 #include "dynamic_read.h"
 
-
 #define rd(B) /*read() with errors*/					\
   do {									\
     errno = 0;								\
@@ -35,46 +34,47 @@
  * returns a buffer and sets pf if data has been read but later failed
  * returns a buffer and does not set pf if successful
  */
-char * d_read (int fd, int * _read, const size_t chunk, const size_t max, int * pf) {
-  size_t size = chunk;
-  size_t rsf = 0;
-  size_t nr = 0;
-  char *buf, *tmp;
-  int eno;
-  *pf = 0;
-  
-  if (chunk > max || chunk == 0) {
-    goto err;
-  }
-  buf = malloc(size);
-  if (buf == NULL) {
-    goto err;
-  }
-  do {
-    do {
-      if (chunk + rsf > max) { //we cannot read a full chunk
-	rd(max - rsf);
-	goto pf;
-      }
-      rd(chunk);
-    } while (nr == chunk && rsf + chunk <= size);
-    if (nr == 0) { //finished reading
-      *_read = rsf;   //success
-      resize(rsf);    //shrink to fit
-      return buf;
-    }
-    if (nr && rsf + chunk > size) { //avoid superfluous resizing when nr == 0 i.e when we are done
-      size = size * 2;
-      resize(size);
-    }
-  } while (nr != 0);
-  abort(); //should never be reached
+char *d_read(int fd, int *_read, const size_t chunk, const size_t max, int *pf)
+{
+	size_t size = chunk;
+	size_t rsf = 0;
+	size_t nr = 0;
+	char *buf, *tmp;
+	int eno;
+	*pf = 0;
+
+	if (chunk > max || chunk == 0) {
+		goto err;
+	}
+	buf = malloc(size);
+	if (buf == NULL) {
+		goto err;
+	}
+	do {
+		do {
+			if (chunk + rsf > max) {	//we cannot read a full chunk
+				rd(max - rsf);
+				goto pf;
+			}
+			rd(chunk);
+		} while (nr == chunk && rsf + chunk <= size);
+		if (nr == 0) {	//finished reading
+			*_read = rsf;	//success
+			resize(rsf);	//shrink to fit
+			return buf;
+		}
+		if (nr && rsf + chunk > size) {	//avoid superfluous resizing when nr == 0 i.e when we are done
+			size = size * 2;
+			resize(size);
+		}
+	} while (nr != 0);
+	abort();		//should never be reached
  pf:
-  *_read = rsf;
-  *pf = 1;
-  return buf;
+	*_read = rsf;
+	*pf = 1;
+	return buf;
  errb:
-  free(buf);
+	free(buf);
  err:
-  return NULL;
+	return NULL;
 }

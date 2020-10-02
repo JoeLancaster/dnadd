@@ -22,10 +22,10 @@
 #define BS 256
 #define RMAX (2 << 30)
 
-#define DNA_SUFF "/.config/.nixadd"
+#define DNA_SUFF "/.config/.dna"
 #define CFG_DFLT "/etc/nixos/configuration.nix"
-#define TMP_SUFF ".tmpnixadd"
-#define OLD_SUFF ".nixadd"
+#define TMP_SUFF ".dnatmp"
+#define OLD_SUFF ".dna"
 
 const char *usage = "usage: %s [OPTIONS] ... [PKG] ...\n"
     "\t-c Specify nix configuration file for this use only\n"
@@ -91,10 +91,10 @@ int main(int argc, char **argv)
 		char *C_path = realpath(C_str, NULL);	//let realpath alloc
 		eno = errno;
 		if (eno) {
-		  if (C_path == NULL) {
-		    fprintf(stderr, "Couldn't use \"%s\": %s\n", C_str, strerror(eno));
-		    exit(EXIT_FAILURE);
-		  } 		  
+			if (C_path == NULL) {
+				fprintf(stderr, "Couldn't use \"%s\": %s\n", C_str, strerror(eno));
+				exit(EXIT_FAILURE);
+			}
 			printf("Warning: %s didn't resolve correctly\n", C_str);
 		} else {
 			C_str = C_path;
@@ -103,25 +103,25 @@ int main(int argc, char **argv)
 		FILE *dna = fopen(dna_path, "w");
 		eno = errno;
 		if (eno) {
-		  fprintf(stderr, "Error opening %s: %s\n", dna_path, strerror(eno));
-		  goto err_pu;
+			fprintf(stderr, "Error opening %s: %s\n", dna_path, strerror(eno));
+			goto err_pu;
 		}
 		if (fputs(C_str, dna) < 0) {
 			fprintf(stderr, "Couldn't write to %s\n", dna_path);
 			goto err_op;
 		}
 		fclose(dna);
-		printf("Set %s as default config file.\n", C_str);
+		printf("Set %s as default config file.\nIn %s\n", C_str, dna_path);
 		free(C_path);
 		return 0;
-	err_op:
+ err_op:
 		fclose(dna);
-	err_pu:
+ err_pu:
 		free(C_path);
 		exit(EXIT_FAILURE);
 	}
 	if (!c_sat) {
-		char dna_cfg_path[PATH_MAX];	//the contents of ~/.config/.nixadd
+		char dna_cfg_path[PATH_MAX];	//the contents of ~/.config/.dna
 		errno = 0;
 		FILE *dna = fopen(dna_path, "r");
 		eno = errno;
@@ -130,20 +130,20 @@ int main(int argc, char **argv)
 			//fail or continue with default?
 			exit(EXIT_FAILURE);
 		}
-		if (eno == ENOENT) {	// if ~/.config/.nixadd doesn't exist then notify user instead of failing
+		if (eno == ENOENT) {	// if ~/.config/.dna doesn't exist then notify user instead of failing
 			puts("Note: you haven't set a location for your config yet. Use -C");
 			puts("Defaulting to: " CFG_DFLT);
 		} else {
-			if (fgets(dna_cfg_path, PATH_MAX, dna) == NULL) {	//get the first line of .nixadd only
+			if (fgets(dna_cfg_path, PATH_MAX, dna) == NULL) {	//get the first line of .dna only
 				fprintf(stderr, "Error reading from %s\n", dna_path);
 				fclose(dna);
 				exit(EXIT_FAILURE);
 			}
 			_config_path = dna_cfg_path;
 		}
-
-
-		fclose(dna);
+		if (dna) {
+		  fclose(dna);
+		}
 
 	}
 
@@ -167,7 +167,7 @@ int main(int argc, char **argv)
 			fclose(fp);
 		}
 		if (cfg_full_path) {
-		  free(cfg_full_path);		  
+			free(cfg_full_path);
 		}
 		exit(EXIT_FAILURE);
 	}
@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 	const size_t cfp_len = strlen(cfg_full_path);
 	char temp_path[cfp_len + sizeof(TMP_SUFF)];
 	char backup_file_path[cfp_len + sizeof(OLD_SUFF)];
-	
+
 	sprintf(backup_file_path, "%s%s", cfg_full_path, OLD_SUFF);
 	sprintf(temp_path, "%s%s", cfg_full_path, TMP_SUFF);
 
@@ -189,7 +189,8 @@ int main(int argc, char **argv)
 	}
 
 	if (insertpkgs(&argv[optind], argc - optind, fp, dfp)) {
-	  goto errf;
+	  fprintf(stderr, "%s did not contain " MARKER "\n", cfg_full_path);
+		goto errf;
 	}
 	swap_names(backup_file_path, cfg_full_path, temp_path);
 	fclose(fp);
@@ -215,7 +216,7 @@ int main(int argc, char **argv)
 				int pf;
 				char *buf = d_read(io_p[0], &bread, BS, RMAX, &pf);
 				if (buf == NULL) {
-				  fprintf(stderr, "Lost output from " CMD " " ARG "\n");
+					fprintf(stderr, "Lost output from " CMD " " ARG "\n");
 				}
 				waitpid(pid, &stat, 0);
 				if (stat) {
@@ -223,7 +224,7 @@ int main(int argc, char **argv)
 					free(buf);
 				}
 				if (pf) {
-				  fprintf(stderr, "Lost some output from " CMD " " ARG "\n");
+					fprintf(stderr, "Lost some output from " CMD " " ARG "\n");
 				}
 			} else {
 				waitpid(pid, &stat, 0);
@@ -247,8 +248,8 @@ int main(int argc, char **argv)
 		}
 	}
 	if (stat) {
-	  fprintf(stderr, "%s: " CMD " failed.\n config has been reverted\n", argv[0]);
-	  swap_names(backup_file_path, cfg_full_path, temp_path);
+		fprintf(stderr, "%s: " CMD " failed.\n config has been reverted\n", argv[0]);
+		swap_names(backup_file_path, cfg_full_path, temp_path);
 	}
 	free(cfg_full_path);
 	return stat;		//guaranteed 0 if (t) otherwise exit status of exec

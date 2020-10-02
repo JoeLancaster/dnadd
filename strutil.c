@@ -27,7 +27,7 @@ int insertpkgs(char **pkg, int plen, FILE * fp, FILE * dfp)
 		trimmed[i] = '\0';
 		fputs(s, dfp);
 		if (strcmp(trimmed, MARKER) == 0 && !marked) {	//on the off chance user has marker twice
-		  char istr[BUFLEN]; //make a copy of s' whitespace
+			char istr[BUFLEN];	//make a copy of s' whitespace
 			strcpy(istr, s);
 			i = 0;
 			while (isspace(s[i])) {
@@ -42,7 +42,6 @@ int insertpkgs(char **pkg, int plen, FILE * fp, FILE * dfp)
 		}
 	}
 	if (marked == 0) {
-		fprintf(stderr, "Provided config file didn't contain \"" MARKER "\"\n");
 		return 1;
 	}
 	return 0;

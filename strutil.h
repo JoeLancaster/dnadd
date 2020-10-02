@@ -1,7 +1,7 @@
 #ifndef STRUTIL_H
 #define STRUTIL_H
 
-#define MARKER "#NIXADD#"
+#define MARKER "#DNA#"
 //#define MARKER "environment.systemPackages = with pkgs; [\n"
 
 #include <stdio.h>
