@@ -1,3 +1,4 @@
+# Declarative Nixos add
 # dnadd(1) - Add nix packages declaratively on the command line
 
 
