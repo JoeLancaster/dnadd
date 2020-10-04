@@ -63,7 +63,7 @@ char *d_read(int fd, int *_read, const size_t chunk, const size_t max, int *pf)
 			resize(rsf);	//shrink to fit
 			return buf;
 		}
-		if (nr && rsf + chunk > size) {	//avoid superfluous resizing when nr == 0 i.e when we are done
+		if (rsf + chunk > size) {	//avoid superfluous resizing when nr == 0 i.e when we are done
 			size = size * 2;
 			resize(size);
 		}

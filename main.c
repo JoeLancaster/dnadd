@@ -53,6 +53,8 @@ int main(int argc, char **argv)
 	char *_config_path = CFG_DFLT;	//default config location for NixOS
 #endif
 	char *C_str = NULL;
+	char dna_cfg_path[PATH_MAX];	//the contents of ~/.config/.dna
+
 	while ((opt = getopt(argc, argv, "qtC:hc:")) != -1) {
 		switch (opt) {
 		case 'q':
@@ -121,7 +123,6 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	if (!c_sat) {
-		char dna_cfg_path[PATH_MAX];	//the contents of ~/.config/.dna
 		errno = 0;
 		FILE *dna = fopen(dna_path, "r");
 		eno = errno;
@@ -142,7 +143,7 @@ int main(int argc, char **argv)
 			_config_path = dna_cfg_path;
 		}
 		if (dna) {
-		  fclose(dna);
+			fclose(dna);
 		}
 
 	}
@@ -150,6 +151,7 @@ int main(int argc, char **argv)
 	errno = 0;
 	char *cfg_full_path = realpath(_config_path, NULL);	//let realpath alloc
 	eno = errno;
+	//propagate both errors, cfg_full_path might be NULL for fopen but it's ok.
 
 	int enorp = eno;
 	errno = 0;
@@ -189,7 +191,7 @@ int main(int argc, char **argv)
 	}
 
 	if (insertpkgs(&argv[optind], argc - optind, fp, dfp)) {
-	  fprintf(stderr, "%s did not contain " MARKER "\n", cfg_full_path);
+		fprintf(stderr, "%s did not contain " MARKER "\n", cfg_full_path);
 		goto errf;
 	}
 	swap_names(backup_file_path, cfg_full_path, temp_path);

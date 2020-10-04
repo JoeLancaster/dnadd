@@ -16,9 +16,8 @@ int insertpkgs(char **pkg, int plen, FILE * fp, FILE * dfp)
 	char s[BUFLEN];
 	int marked = 0;
 	char trimmed[BUFLEN];
-	int i;
 	while (fgets(s, BUFLEN, fp)) {
-		i = 0;
+		int i = 0;
 		char *t = ltrim(s);
 		while (!isspace(t[i]) && t[i] != '\0') {	//trim RHS
 			trimmed[i] = t[i];
