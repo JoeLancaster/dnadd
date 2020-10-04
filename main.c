@@ -198,10 +198,11 @@ int main(int argc, char **argv)
 	fclose(fp);
 	fclose(dfp);
 	printf("Successfully edited %s\n", cfg_full_path);
-	if (quiet) {		//ironically print more
-		puts("Running " CMD "\n");	//so the user knows at least something's happening
-	}
+
 	if (!t_mode) {
+	  	if (quiet) {		//ironically print more
+		  puts("Running " CMD "\n");	//so the user knows at least something's happening
+		}
 		if (pipe(io_p) == -1) {
 			exit(EXIT_FAILURE);
 		}
