@@ -8,8 +8,8 @@ default:
 debug:
 	gcc -g -Og $(CFLAGS) $(sources) -o $(PNAME)_dbg
 install:
-	install -d $(DESTDIR)/bin
-	install -m 777 $(PNAME) $(DESTDIR)/bin
-	install -d $(DESTDIR)$(MANDIR)
-	install $(PNAME).1 $(DESTDIR)$(MANDIR)
-	gzip -9 $(DESTDIR)$(MANDIR)/$(PNAME).1
+	install -d $(PREFIX)/bin
+	install -m 777 $(PNAME) $(PREFIX)/bin
+	install -d $(PREFIX)$(MANDIR)
+	install -D $(PNAME).1 $(PREFIX)$(MANDIR)
+	gzip -9 $(PREFIX)$(MANDIR)/$(PNAME).1
