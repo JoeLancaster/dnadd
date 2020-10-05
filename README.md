@@ -39,7 +39,7 @@ dnadd is a utility that allows you to add packages to your Nix-based system in a
 * 1.  
   Before first run, set the location of your .nix file that contains your packages with dnadd -C
 * 2.  
-  Within your .nix file inside your packages array you should write the comment #DNADD# immediately above the first package. dnadd will use this to find where to place the packages and use the proper indentation.
+  Within your .nix file inside your packages array you should write the comment #DNA# immediately above the first package. dnadd will use this to find where to place the packages and use the proper indentation.
   
 The location of the persistent file used by dnadd and set with -C is located at ~/.config/.dna  
 
