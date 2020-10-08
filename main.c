@@ -7,8 +7,11 @@
 #include <unistd.h>
 #include <errno.h>
 #include <limits.h>
+#include <dirent.h>
 #include <libgen.h>
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "strutil.h"
 #include "dynamic_read.h"
@@ -23,6 +26,7 @@
 #define RMAX (2 << 30)
 
 #define DNA_SUFF "/.config/.dna"
+#define CFG_SUFF "/.config"
 #define CFG_DFLT "/etc/nixos/configuration.nix"
 #define TMP_SUFF ".dnatmp"
 #define OLD_SUFF ".dna"
@@ -37,7 +41,7 @@ const char *usage = "usage: %s [OPTIONS] ... [PKG] ...\n"
 
 int main(int argc, char **argv)
 {
-	int stat = 0;
+	int status = 0;
 	int quiet = 0;
 	int io_p[2];
 	int t_mode = 0;		//text only mode. do not nixos-rebuild
@@ -85,7 +89,8 @@ int main(int argc, char **argv)
 	}
 
 	char *home_path = getenv("HOME");
-	char dna_path[strlen(home_path) + sizeof(DNA_SUFF)];
+	const size_t hp_len = strlen(home_path);
+	char dna_path[hp_len + sizeof(DNA_SUFF)];
 	sprintf(dna_path, "%s%s", home_path, DNA_SUFF);
 
 	if (C_mode) {
@@ -101,11 +106,40 @@ int main(int argc, char **argv)
 		} else {
 			C_str = C_path;
 		}
+
+		struct stat st = { 0 };
+		char dotcfg_path[hp_len + sizeof(CFG_SUFF)];
+		sprintf(dotcfg_path, "%s%s", home_path, CFG_SUFF);
+
+		errno = 0;
+		DIR *d = opendir(dotcfg_path);
+		if (d) {
+			closedir(d);
+		} else {
+			errno = 0;
+			stat(home_path, &st);
+			eno = errno;
+			if (eno) {
+				fprintf(stderr,
+					"%s doesn't exist and couldn't be created when trying to enter %s: %s\n",
+					dotcfg_path, home_path, strerror(eno));
+				goto err_pu;
+			}
+			errno = 0;
+			mkdir(dotcfg_path, st.st_mode);
+			eno = errno;
+			if (eno) {
+				fprintf(stderr, "%s doesn't exist and couldn't be created: %s\n", dotcfg_path,
+					strerror(eno));
+				goto err_pu;
+			}
+		}
+		printf("%s was created.\n", dotcfg_path);
 		errno = 0;
 		FILE *dna = fopen(dna_path, "w");
 		eno = errno;
 		if (eno) {
-			fprintf(stderr, "Error opening %s: %s\n", dna_path, strerror(eno));
+			fprintf(stderr, "T: Error opening %s: %s\n", dna_path, strerror(eno));
 			goto err_pu;
 		}
 		if (fputs(C_str, dna) < 0) {
@@ -221,8 +255,8 @@ int main(int argc, char **argv)
 				if (buf == NULL) {
 					fprintf(stderr, "Lost output from " CMD " " ARG "\n");
 				}
-				waitpid(pid, &stat, 0);
-				if (stat) {
+				waitpid(pid, &status, 0);
+				if (status) {
 					printf("%.*s\n", bread, buf);
 					free(buf);
 				}
@@ -230,7 +264,7 @@ int main(int argc, char **argv)
 					fprintf(stderr, "Lost some output from " CMD " " ARG "\n");
 				}
 			} else {
-				waitpid(pid, &stat, 0);
+				waitpid(pid, &status, 0);
 			}
 			puts("Done.\n");
 
@@ -250,12 +284,12 @@ int main(int argc, char **argv)
 			}
 		}
 	}
-	if (stat) {
+	if (status) {
 		fprintf(stderr, "%s: " CMD " failed.\n config has been reverted\n", argv[0]);
 		swap_names(backup_file_path, cfg_full_path, temp_path);
 	}
 	free(cfg_full_path);
-	return stat;		//guaranteed 0 if (t) otherwise exit status of exec
+	return status;		//guaranteed 0 if (t) otherwise exit status of exec
  errf:
 	fclose(fp);
 	fclose(dfp);
